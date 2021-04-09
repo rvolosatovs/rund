@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/wrappers.proto";
+
+package rund;
+
+option go_package = "github.com/rvolosatovs/rund/pkg/pb";
+
+message JobIdentifier {
+  // ulid uniquely identifies a process started by JobController.
+  string ulid = 1;
+}
+
+message JobLog {
+  bytes stdout = 1;
+  bytes stderr = 2;
+}
+
+message JobStatus {
+  // Whether the job has been stopped via `Stop` RPC.
+  bool stopped = 1;
+  // Whether the job has been killed.
+  bool killed = 2;
+  // Exit code of the process, if not set - the process is still running.
+  google.protobuf.UInt32Value exit_code = 3;
+
+  // CPU user time with microsecond precision.
+  google.protobuf.Duration user_time = 4;
+  // CPU system time with microsecond precision.
+  google.protobuf.Duration system_time = 5;
+
+  // The total amount of memory currently being used by the job cgroup and its descendants in bytes.
+  uint64 memory_current = 6;
+}
+
+message JobStartRequest {
+  // Command name.
+  string name = 1;
+  // Optional command arguments.
+  repeated string args = 2;
+
+  // The maximum bandwidth limit, which indicates how many time units the job may consume out of 100000.
+  google.protobuf.UInt32Value max_cpu_bandwidth = 3;
+
+  // Memory usage hard limit in bytes.
+  google.protobuf.UInt64Value max_memory_usage = 4;
+
+  // Max read bytes per second.
+  google.protobuf.UInt64Value max_rbps = 5;
+  // Max write bytes per second.
+  google.protobuf.UInt64Value max_wbps = 6;
+  // Max read IO operations per second.
+  google.protobuf.UInt64Value max_riops = 7;
+  // Max write IO operations per second.
+  google.protobuf.UInt64Value max_wiops = 8;
+}
+
+// The JobController service provides remote control over execution of arbitrary Linux processes.
+service JobController {
+  // Start starts a job and returns an identifier that can be used to uniquely identify the started job.
+  rpc Start(JobStartRequest) returns (JobIdentifier);
+
+  // Stop kills the running job and returns the exit code.
+  rpc Stop(JobIdentifier) returns (JobStatus);
+
+  // Status returns the status of a job.
+  rpc Status(JobIdentifier) returns (JobStatus);
+
+  // Log streams job logs.
+  rpc Log(JobIdentifier) returns (stream JobLog);
+}
