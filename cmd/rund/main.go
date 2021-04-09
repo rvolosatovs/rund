@@ -56,6 +56,7 @@ type Serve struct {
 	CertFile *string
 	KeyFile  *string
 
+	RootFS    *string
 	CGroupFS  *string
 	IODevices *string
 }
@@ -70,6 +71,7 @@ func NewServeSubcommand() *cli.Subcommand {
 			CertFile: fs.String("cert", "tls/server.pem", "path to TLS certificate"),
 			KeyFile:  fs.String("key", "tls/server-key.pem", "path to TLS key"),
 
+			RootFS:    fs.String("rootfs", "assets/rootfs", "path to root file system"),
 			CGroupFS:  fs.String("cgroupFS", filepath.Join("/sys", "fs", "cgroup"), "path to cgroup2 file system"),
 			IODevices: fs.String("io_devices", defaultIODeviceStr, "comma-separated block devices to use for IO limits"),
 		},
@@ -93,6 +95,9 @@ func (cmd *Serve) Parse(fs *flag.FlagSet, args ...string) error {
 
 	case *cmd.KeyFile == "":
 		return errors.New("`key` cannot be empty")
+
+	case *cmd.RootFS == "":
+		return errors.New("`rootfs` cannot be empty")
 
 	case *cmd.CGroupFS == "":
 		return errors.New("`cgroupfs` cannot be empty")
@@ -118,6 +123,7 @@ func (cmd *Serve) Run() error {
 		Certificates: certs,
 		ClientCAs:    certPool,
 
+		RootFS:    *cmd.RootFS,
 		CGroupFS:  *cmd.CGroupFS,
 		IODevices: strings.Split(*cmd.IODevices, ","),
 

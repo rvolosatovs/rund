@@ -53,6 +53,7 @@ type Server struct {
 	ClientCAs    *x509.CertPool
 	Certificates []tls.Certificate
 
+	RootFS    string
 	CGroupFS  string
 	IODevices []string
 
@@ -113,6 +114,7 @@ func (s *Server) Start(ctx context.Context, req *pb.JobStartRequest) (*pb.JobIde
 		MaxRIOPS: unwrapUint64(req.MaxRiops),
 		MaxWIOPS: unwrapUint64(req.MaxWiops),
 
+		RootFS:    s.RootFS,
 		CGroupFS:  s.CGroupFS,
 		IODevices: s.IODevices,
 

@@ -83,6 +83,8 @@ type Config struct {
 	// MaxWIOPS corresponds to `wiops` field of `io.max`, which indicates max write IO operations per second.
 	MaxWIOPS *uint64
 
+	// RootFS is the path to root filesystem to use for `pivot_root`.
+	RootFS string
 	// CGroupFS is the path to cgroup2 filesystem.
 	CGroupFS string
 	// IODevices is a list of IO devices to use with `io.max`.
@@ -584,12 +586,33 @@ func Execute(fifoPath string) error {
 	if err := syscall.Sethostname([]byte(idStr)); err != nil {
 		return fmt.Errorf("failed to set hostname: %w", err)
 	}
-
-	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
-		return fmt.Errorf("failed to mount procfs: %w", err)
+	hostRootPath := filepath.Join(req.RootFS, "hostroot")
+	if err := os.MkdirAll(hostRootPath, 0700); err != nil {
+		return fmt.Errorf("failed to create host root filesystem path: %w", err)
 	}
 
-	cmd := exec.Command(req.Command, req.Args...)
+	if err := syscall.Mount("proc", filepath.Join(req.RootFS, "proc"), "proc", 0, ""); err != nil {
+		return fmt.Errorf("failed to mount procfs: %w", err)
+	}
+	if err := syscall.Mount("/dev", filepath.Join(req.RootFS, "dev"), "", syscall.MS_BIND, ""); err != nil {
+		return fmt.Errorf("failed to mount devfs: %w", err)
+	}
+
+	if err := syscall.Mount(req.RootFS, req.RootFS, "", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
+		return fmt.Errorf("failed to bind-mount root file system: %w", err)
+	}
+	if err := syscall.PivotRoot(req.RootFS, hostRootPath); err != nil {
+		return fmt.Errorf("failed to pivot root file system: %w", err)
+	}
+	if err := syscall.Chdir("/"); err != nil {
+		return fmt.Errorf("failed to chdir to '/': %w", err)
+	}
+	if err := syscall.Unmount("/hostroot", syscall.MNT_DETACH); err != nil {
+		return fmt.Errorf("failed to unmount host root file system: %w", err)
+	}
+
+	// Call command via `/bin/sh` to ensure environment is correctly set up, e.g. `/etc/profile` is loaded.
+	cmd := exec.Command(filepath.Join("/bin", "sh"), append([]string{"--login", "-c", req.Command}, req.Args...)...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	return cmd.Run()

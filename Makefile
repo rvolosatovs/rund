@@ -1,5 +1,5 @@
 .PHONY: all
-all: api
+all: assets/rootfs api
 
 DOCKER ?= docker
 PROTOC_OUT ?= /out
@@ -14,6 +14,10 @@ pkg/pb/api.pb: api/api.proto
 		--go-grpc_out $(PROTOC_OUT) \
 		--go_out $(PROTOC_OUT) \
  		$<
+
+assets/rootfs:
+	mkdir -p $@
+	curl -sL https://dl-cdn.alpinelinux.org/alpine/v3.13/releases/x86_64/alpine-minirootfs-3.13.4-x86_64.tar.gz | tar xz --strip 1 -C $@
 
 .PHONY: api
 api: pkg/pb/api.pb
