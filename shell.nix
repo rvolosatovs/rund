@@ -4,6 +4,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     go
     openssl
+    stress
 
     (
       pkgs.writeShellScriptBin "serve" ''
