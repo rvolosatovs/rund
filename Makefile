@@ -1,3 +1,6 @@
+.PHONY: all
+all: api
+
 DOCKER ?= docker
 PROTOC_OUT ?= /out
 PROTOC ?= $(DOCKER) run --user `id -u` --rm \
@@ -14,6 +17,3 @@ pkg/pb/api.pb: api/api.proto
 
 .PHONY: api
 api: pkg/pb/api.pb
-
-.PHONY: all
-all: api
