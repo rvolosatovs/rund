@@ -395,9 +395,9 @@ const notifyBufSize = 1
 // calls stderrHandle for all contents in job stderr until either:
 // - ctx is done
 // - job is done
-// HandleLog reads at most 512 bytes at a time.
+// HandleLog reads at most n bytes at a time.
 // HandleLog watches for inotify events to track file changes internally.
-func (j *Job) HandleLog(ctx context.Context, stdoutHandle, stderrHandle func(b []byte) error) error {
+func (j *Job) HandleLog(ctx context.Context, n uint, stdoutHandle, stderrHandle func(b []byte) error) error {
 	stdoutCh := make(chan notify.EventInfo, notifyBufSize)
 	if err := notify.Watch(j.stdout, stdoutCh, notify.Write); err != nil {
 		return fmt.Errorf("failed to watch stdout file: %w", err)
@@ -410,7 +410,7 @@ func (j *Job) HandleLog(ctx context.Context, stdoutHandle, stderrHandle func(b [
 	}
 	defer notify.Stop(stderrCh)
 
-	b := make([]byte, 512) // TODO: Make this configurable if necessary
+	b := make([]byte, n)
 	process := func(r io.Reader, name string, f func(b []byte) error) error {
 		for {
 			n, err := r.Read(b)

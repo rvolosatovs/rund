@@ -223,6 +223,7 @@ func (s *Server) Log(id *pb.JobIdentifier, stream pb.JobController_LogServer) er
 	}
 	return j.HandleLog(
 		ctx,
+		512,
 		func(b []byte) error {
 			return stream.Send(&pb.JobLog{
 				Stdout: b,
