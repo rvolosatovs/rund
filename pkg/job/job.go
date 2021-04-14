@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package job runs runs arbitrary Linux processes in namespaces with cgroups.
+// Package job runs arbitrary Linux processes in namespaces with cgroups.
 package job
 
 import (
